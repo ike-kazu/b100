@@ -20,14 +20,23 @@ public class CrossKey : MonoBehaviour
 
     void OnMouseDown()
     {
-        tileManager.Move(direction);
         StartCoroutine("Tap");
+    }
+
+    void OnMouseUp()
+    {
+        StopCoroutine("Tap");
+        GetComponent<SpriteRenderer>().color = new Color32(255, 255, 255, 255);
     }
 
     IEnumerator Tap()
     {
-        GetComponent<SpriteRenderer>().color = new Color32(192, 192, 192, 255);
-        yield return new WaitForSeconds(0.2f);
-        GetComponent<SpriteRenderer>().color = new Color32(255, 255, 255, 255);
+        while (true)
+        {
+            tileManager.Move(direction);
+            GetComponent<SpriteRenderer>().color = new Color32(192, 192, 192, 255);
+            yield return new WaitForSeconds(0.2f);
+            GetComponent<SpriteRenderer>().color = new Color32(255, 255, 255, 255);
+        }
     }
 }

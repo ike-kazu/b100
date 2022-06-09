@@ -24,12 +24,12 @@ public class MomentText : MonoBehaviour
 
         byte fade = 255;
         float x = 0.02f;
-        for (float t = 0; t < 50; t++)
+        for (float t = 0; t < 30; t++)
         {
             x *= 0.8f;
             transform.Translate(0, x * 0.5f, 0);
             GetComponent<Text>().color = new Color32(color[0], color[1], color[2], fade);
-            fade -= 5;
+            if (t > 25) fade -= 40;
             yield return null;
         }
 

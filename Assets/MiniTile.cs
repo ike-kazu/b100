@@ -2,9 +2,9 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class MainCamera : MonoBehaviour
+public class MiniTile : MonoBehaviour
 {
-    public GameObject player;
+    public GameObject[] wall;
 
     void Start()
     {
@@ -14,5 +14,10 @@ public class MainCamera : MonoBehaviour
     void Update()
     {
         
+    }
+
+    public void Create(int d)
+    {
+        wall[d].SetActive(true);
     }
 }

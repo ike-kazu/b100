@@ -5,6 +5,7 @@ using UnityEngine.UI;
 
 public class MomentText : MonoBehaviour
 {
+    public float wait;
     public byte[] color;
     Vector3 startPos;
     void Start()
@@ -30,7 +31,10 @@ public class MomentText : MonoBehaviour
             transform.Translate(0, x * 0.5f, 0);
             GetComponent<Text>().color = new Color32(color[0], color[1], color[2], fade);
             if (t > 25) fade -= 40;
-            yield return null;
+            for(int y = 0; y < wait; y++)
+            {
+                yield return null;
+            }
         }
 
         GetComponent<Text>().enabled = false;

@@ -10,7 +10,7 @@ public class TileManager : MonoBehaviour
     public GameObject tile;
     public GameObject stair;
     public GameObject player;
-    public int[,] tileNum = new int[20, 20];
+    public int[,] tileNum = new int[20, 20];//1í Ç¡ÇƒÇ»Ç¢ÅA2í Ç¡ÇΩÅA3äKíií Ç¡ÇƒÇ»Ç¢ÅA4äKíií Ç¡ÇΩÅA5ïÛî†í Ç¡ÇƒÇ»Ç¢ÅA6ã≠ìGí Ç¡ÇƒÇ»Ç¢ÅAÇVã≠ìGí Ç¡ÇΩ
     Vector2 playerPos = new Vector2(10, 10);
     Vector2 generatePos = new Vector2(10, 10);
     Vector2[] randomMovePos = { new Vector2(1, 0), new Vector2(0, 1), new Vector2(-1, 0), new Vector2(0, -1)};
@@ -27,6 +27,11 @@ public class TileManager : MonoBehaviour
     public GameObject miniMap;
     public GameObject miniTile;
     public GameObject downButton;
+
+    public GameObject chest;
+    public Text chestItemText;
+
+    public GameObject enemyOnMap;
 
     void Start()
     {
@@ -48,7 +53,7 @@ public class TileManager : MonoBehaviour
         {
             generatePos = startGeneratePos;
 
-            for (int n = 0; n < 10 + stairNum; n++)
+            for (int n = 0; n < 2 + stairNum; n++)
             {
                 float random = Random.Range(0.0f, 1.0f);
                 Vector2 movePos = randomMovePos[Random.Range(0, 4)];
@@ -76,7 +81,7 @@ public class TileManager : MonoBehaviour
             int y = Random.Range(1, 19);
             if (tileNum[x, y] == 1)
             {
-                tileNum[x, y] = 2;
+                tileNum[x, y] = 3;
                 Instantiate(stair, new Vector2(x, y) * 0.1f, transform.rotation, map.transform);
                 break;
             }
@@ -88,7 +93,7 @@ public class TileManager : MonoBehaviour
             int y = Random.Range(1, 19);
             if (tileNum[x, y] == 1)
             {
-                tileNum[x, y] = 3;
+                tileNum[x, y] = 2;
                 playerPos = new Vector2(x, y);
                 player.transform.position = playerPos * 0.1f;
                 mainCamera.transform.position = new Vector3(player.transform.position.x, player.transform.position.y, -10);
@@ -99,6 +104,36 @@ public class TileManager : MonoBehaviour
                 for (int z = 0; z < randomMovePos.Length; z++) if (tileNum[(int)(playerPos.x + randomMovePos[z].x), (int)(playerPos.y + randomMovePos[z].y)] == 0) miniTilePrefab.GetComponent<MiniTile>().Create(z);
 
                 break;
+            }
+        }
+
+        if (Random.Range(0.0f, 1.0f) >= 0.0f)
+        {
+            while (true)
+            {
+                int x = Random.Range(1, 19);
+                int y = Random.Range(1, 19);
+                if (tileNum[x, y] == 1)
+                {
+                    tileNum[x, y] = 5;
+                    Instantiate(chest, new Vector2(x, y) * 0.1f, transform.rotation, map.transform);
+                    break;
+                }
+            }
+        }
+
+        if (Random.Range(0.0f, 1.0f) >= 0.0f)
+        {
+            while (true)
+            {
+                int x = Random.Range(1, 19);
+                int y = Random.Range(1, 19);
+                if (tileNum[x, y] == 1)
+                {
+                    tileNum[x, y] = 6;
+                    Instantiate(enemyOnMap, new Vector2(x, y) * 0.1f, transform.rotation, map.transform);
+                    break;
+                }
             }
         }
 
@@ -115,24 +150,37 @@ public class TileManager : MonoBehaviour
             mainCamera.transform.position = new Vector3(player.transform.position.x, player.transform.position.y, -10);
             playerOnMiniMap.transform.localPosition = playerPos * 0.02f;
 
-            if (j == 1 || j == 2)
+            if (j == 1 || j == 3 || j == 5 || j == 6)
             {
-                if (j == 1) tileNum[(int)(playerPos.x), (int)(playerPos.y)] = 3;
-                if (j == 2) tileNum[(int)(playerPos.x), (int)(playerPos.y)] = 4;
+                if (j == 1) { tileNum[(int)(playerPos.x), (int)(playerPos.y)] = 2; encountGauge += Random.Range(1, 4); }
+                if (j == 3) tileNum[(int)(playerPos.x), (int)(playerPos.y)] = 4;
+                if (j == 5){ tileNum[(int)(playerPos.x), (int)(playerPos.y)] = 2;Chest();}
+                if (j == 6)
+                {
+                    Destroy(map.transform.Find("EnemyOnMap(Clone)").gameObject);
+                    em.StartCoroutine("Fight",1);
+                    tileNum[(int)(playerPos.x), (int)(playerPos.y)] = 2;
+                }
+
                 j = tileNum[(int)(playerPos.x), (int)(playerPos.y)];
                 var miniTilePrefab = Instantiate(miniTile, transform.position, transform.rotation, miniMap.transform);
                 miniTilePrefab.transform.localPosition = playerPos * 0.02f;
                 for (int z = 0; z < randomMovePos.Length; z++) if (tileNum[(int)(playerPos.x + randomMovePos[z].x), (int)(playerPos.y + randomMovePos[z].y)] == 0) miniTilePrefab.GetComponent<MiniTile>().Create(z);
             }
+            if (j == 7)
+            {
+                Destroy(map.transform.Find("EnemyOnMap(Clone)").gameObject);
+                em.StartCoroutine("Fight",1);
+                tileNum[(int)(playerPos.x), (int)(playerPos.y)] = 2;
+            }
 
-            encountGauge += Random.Range(1,4);
             if (encountGauge >= encountLimit)
             {
                 encountGauge = 0;
-                em.StartCoroutine("Fight");
+                em.StartCoroutine("Fight",0);
                 fighting = true;
             }
-            if (j == 2 || j == 4) downButton.SetActive(true);
+            if (j == 3 || j == 4) downButton.SetActive(true);
             else downButton.SetActive(false);
         }
     }
@@ -152,5 +200,12 @@ public class TileManager : MonoBehaviour
         stairNum += 1;
         stairNumText.text = stairNum.ToString("") + "äK";
         yield return null;
+    }
+
+    void Chest()
+    {
+        Destroy(map.transform.Find("Chest(Clone)").gameObject);
+        chestItemText.text = "ÉAÉCÉeÉÄ";
+        chestItemText.gameObject.GetComponent<MomentText>().StartCoroutine("Moment");
     }
 }

@@ -11,7 +11,6 @@ public class EnemyManager : MonoBehaviour
 
     public Sprite[] EnemySprite;
 
-    public int enemyLevel;
     public int playerLevel;
     public float exp;
     public float maxExp;
@@ -31,11 +30,13 @@ public class EnemyManager : MonoBehaviour
     public float playerMaxHP;
     public float playerHP;
 
-    public float enemyAttack;
-    public float enemyDefense;
-    public float enemySpeed;
-    public float enemyMaxHP;
+    public float[] enemyAttack;
+    public float[] enemyDefense;
+    public float[] enemySpeed;
+    public float[] enemyMaxHP;
     public float enemyHP;
+
+    public GameObject gameOver;
 
     void Start()
     {
@@ -58,28 +59,15 @@ public class EnemyManager : MonoBehaviour
         enemy.GetComponent<SpriteRenderer>().enabled = true;
         enemy.GetComponent<SpriteRenderer>().sprite = EnemySprite[kind];
 
-        enemyAttack = Mathf.FloorToInt(2 * Mathf.Pow(1.1f, tm.stairNum - 1));
-        enemyLevel = tm.stairNum;
-        enemyMaxHP = 10 * Mathf.Pow(1.1f, enemyLevel - 1);
-        enemyHP = enemyMaxHP;
-
-        if (kind == 1)
-        {
-            enemyAttack = Mathf.FloorToInt(enemyAttack * 1.5f);
-            enemyDefense = Mathf.FloorToInt(enemyDefense * 1.5f);
-            enemySpeed = Mathf.FloorToInt(enemySpeed * 1.5f);
-            enemyHP = Mathf.FloorToInt(enemyHP * 2f);
-            enemyMaxHP = Mathf.FloorToInt(enemyMaxHP * 2f);
-        }
-
+        enemyHP = enemyMaxHP[kind];
         enemyHPBar.SetActive(true);
         playerHPBar.SetActive(true);
-        enemyHPBar.transform.localPosition = new Vector2(-0.15f + 0.15f * enemyHP / enemyMaxHP, 0.1f);
-        enemyHPBar.transform.localScale = new Vector2(3 * enemyHP / enemyMaxHP, 0.2f);
-        playerHPBar.transform.localPosition = new Vector2(-0.15f + 0.15f * playerHP / playerMaxHP, -0.2f);
-        playerHPBar.transform.localScale = new Vector2(3 * playerHP / playerMaxHP, 0.2f);
+        enemyHPBar.transform.localPosition = new Vector2(-0.15f + 0.15f * (enemyHP / enemyMaxHP[kind]), 0.1f);
+        enemyHPBar.transform.localScale = new Vector2(3 * (enemyHP / enemyMaxHP[kind]), 0.2f);
+        playerHPBar.transform.localPosition = new Vector2(-0.15f + 0.15f * (playerHP / playerMaxHP), -0.2f);
+        playerHPBar.transform.localScale = new Vector2(3 * (playerHP / playerMaxHP), 0.2f);
 
-        float speedLimit = enemySpeed + playerSpeed;
+        float speedLimit = enemySpeed[kind] + playerSpeed;
         float playerSpeedGauge = 0;
         float enemySpeedGauge = 0;
 
@@ -88,17 +76,17 @@ public class EnemyManager : MonoBehaviour
         while (enemyHP > 0 && playerHP > 0)
         {
             playerSpeedGauge += playerSpeed * 0.1f;
-            enemySpeedGauge += enemySpeed * 0.1f;
+            enemySpeedGauge += enemySpeed[kind] * 0.1f;
             if (playerSpeedGauge >= speedLimit)
             {
-                PlayerAttack();
+                PlayerAttack(kind);
                 playerSpeedGauge = 0;
                 yield return new WaitForSeconds(0.3f);
                 continue;
             }
             if (enemySpeedGauge >= speedLimit && enemyHP > 0)
             {
-                EnemyAttack();
+                EnemyAttack(kind);
                 enemySpeedGauge = 0;
                 yield return new WaitForSeconds(0.3f);
                 continue;
@@ -107,7 +95,14 @@ public class EnemyManager : MonoBehaviour
         enemyHPBar.SetActive(false);
         playerHPBar.SetActive(false);
 
-        StartCoroutine("LevelManage",enemyLevel);
+        if (playerHP <= 0)
+        {
+            PlayerPrefs.SetInt("MaxStair", tm.stairNum);
+            gameOver.SetActive(true);
+            StopCoroutine("Fight");
+        }
+
+        StartCoroutine("LevelManage",tm.stairNum);
 
         enemy.GetComponent<SpriteRenderer>().enabled = false;
         for (int x = 20; x >= 0; x--)
@@ -116,22 +111,27 @@ public class EnemyManager : MonoBehaviour
             yield return null;
         }
         tm.fighting = false;
+        if (kind >= 5 && kind <= 10)
+        {
+            tm.bossDefeated = true;
+            tm.downButton.SetActive(true);
+        }
     }
 
 
-    void EnemyAttack()
+    void EnemyAttack(int kind)
     {
         StartCoroutine("Attacked", enemy);
-        if (enemyAttack - playerDefense > 1)
-        {
-            if (playerHP - enemyAttack <= 0) playerHP = 0;
-            if (playerHP - enemyAttack > 0) playerHP -= enemyAttack - playerDefense;
-            playerDamageText.text = (enemyAttack - playerDefense).ToString("");
-        }
-        if (enemyAttack - playerDefense <= 1)
+        if (enemyAttack[kind] - playerDefense <= 1)
         {
             playerHP -= 1;
             playerDamageText.text = 1.ToString("");
+        }
+        if (enemyAttack[kind] - playerDefense > 1)
+        {
+            if (playerHP - enemyAttack[kind] + playerDefense<= 0) playerHP = 0;
+            if (playerHP - enemyAttack[kind] + playerDefense> 0) playerHP -= enemyAttack[kind] - playerDefense;
+            playerDamageText.text = (enemyAttack[kind] - playerDefense).ToString("");
         }
 
         playerDamageText.gameObject.GetComponent<MomentText>().StartCoroutine("Moment");
@@ -139,24 +139,24 @@ public class EnemyManager : MonoBehaviour
         playerHPBar.transform.localScale = new Vector2(3 * playerHP / playerMaxHP, 0.2f);
     }
 
-    void PlayerAttack()
+    void PlayerAttack(int kind)
     {
         StartCoroutine("Damaged", enemy);
-        if(playerAttack - enemyDefense > 1)
-        {
-            if (enemyHP - playerAttack <= 0) enemyHP = 0;
-            if (enemyHP - playerAttack > 0) enemyHP -= playerAttack - enemyDefense;
-            enemyDamageText.text = (playerAttack - enemyDefense).ToString("");
-        }
-        if (playerAttack - enemyDefense <= 1)
+        if (playerAttack - enemyDefense[kind] <= 1)
         {
             enemyHP -= 1;
             enemyDamageText.text = 1.ToString("");
         }
+        if (playerAttack - enemyDefense[kind] > 1)
+        {
+            if (enemyHP - playerAttack + enemyDefense[kind] <= 0) enemyHP = 0;
+            if (enemyHP - playerAttack + enemyDefense[kind] > 0) enemyHP -= playerAttack - enemyDefense[kind];
+            enemyDamageText.text = (playerAttack - enemyDefense[kind]).ToString("");
+        }
 
         enemyDamageText.gameObject.GetComponent<MomentText>().StartCoroutine("Moment");
-        enemyHPBar.transform.localPosition = new Vector2(-0.15f + 0.15f * enemyHP / enemyMaxHP, 0.1f);
-        enemyHPBar.transform.localScale = new Vector2(3 * enemyHP / enemyMaxHP, 0.2f);
+        enemyHPBar.transform.localPosition = new Vector2(-0.15f + 0.15f * enemyHP / enemyMaxHP[kind], 0.1f);
+        enemyHPBar.transform.localScale = new Vector2(3 * enemyHP / enemyMaxHP[kind], 0.2f);
     }
 
 
@@ -200,8 +200,10 @@ public class EnemyManager : MonoBehaviour
             yield return new WaitForSeconds(0.05f);
             maxExp = playerLevel * 2;
 
-            playerAttack = Mathf.Floor(5 * Mathf.Pow(1.1f, playerLevel));
-            playerMaxHP = Mathf.Floor(10 * Mathf.Pow(1.1f, playerLevel));
+            playerAttack = Mathf.Floor(5 * Mathf.Pow(1.3f, playerLevel));
+            playerDefense = Mathf.Floor(5 * Mathf.Pow(1.3f, playerLevel));
+            playerSpeed = Mathf.Floor(5 * Mathf.Pow(1.3f, playerLevel));
+            playerMaxHP = Mathf.Floor(10 * Mathf.Pow(1.3f, playerLevel));
             playerHP = playerMaxHP;
         }
         if (exp + plus < maxExp) exp += plus;

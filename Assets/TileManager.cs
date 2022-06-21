@@ -10,7 +10,7 @@ public class TileManager : MonoBehaviour
     public GameObject tile;
     public GameObject stair;
     public GameObject player;
-    public int[,] tileNum = new int[20, 20];//1通ってない、2通った、3階段通ってない、4階段通った、5宝箱通ってない、6強敵通ってない、７強敵通った
+    public int[,] tileNum = new int[20, 20];//1通ってない、2通った、3階段通ってない、4階段通った、5宝箱通ってない、6階段ボスなし通ってない
     Vector2 playerPos = new Vector2(10, 10);
     Vector2 generatePos = new Vector2(10, 10);
     Vector2[] randomMovePos = { new Vector2(1, 0), new Vector2(0, 1), new Vector2(-1, 0), new Vector2(0, -1)};
@@ -18,7 +18,6 @@ public class TileManager : MonoBehaviour
     public Text stairNumText;
     public int stairNum;
 
-    int encountGauge = 0;
     public int encountLimit;
     public EnemyManager em;
     public bool fighting;
@@ -32,6 +31,7 @@ public class TileManager : MonoBehaviour
     public Text chestItemText;
 
     public GameObject enemyOnMap;
+    public bool bossDefeated = false;
 
     void Start()
     {
@@ -53,7 +53,7 @@ public class TileManager : MonoBehaviour
         {
             generatePos = startGeneratePos;
 
-            for (int n = 0; n < 2 + stairNum; n++)
+            for (int n = 0; n < 20 + stairNum; n++)
             {
                 float random = Random.Range(0.0f, 1.0f);
                 Vector2 movePos = randomMovePos[Random.Range(0, 4)];
@@ -81,9 +81,19 @@ public class TileManager : MonoBehaviour
             int y = Random.Range(1, 19);
             if (tileNum[x, y] == 1)
             {
-                tileNum[x, y] = 3;
+                Debug.Log(PlayerPrefs.GetInt("MaxStair", 0));
                 Instantiate(stair, new Vector2(x, y) * 0.1f, transform.rotation, map.transform);
-                break;
+                if (PlayerPrefs.GetInt("MaxStair", 0) <= stairNum)
+                {
+                    tileNum[x, y] = 3;
+                    Instantiate(enemyOnMap, new Vector2(x, y) * 0.1f, transform.rotation, map.transform);
+                    break;
+                }
+                if(PlayerPrefs.GetInt("MaxStair",0) > stairNum)
+                {
+                    tileNum[x, y] = 6;
+                    break;
+                }
             }
         }
 
@@ -122,20 +132,7 @@ public class TileManager : MonoBehaviour
             }
         }
 
-        if (Random.Range(0.0f, 1.0f) >= 0.0f)
-        {
-            while (true)
-            {
-                int x = Random.Range(1, 19);
-                int y = Random.Range(1, 19);
-                if (tileNum[x, y] == 1)
-                {
-                    tileNum[x, y] = 6;
-                    Instantiate(enemyOnMap, new Vector2(x, y) * 0.1f, transform.rotation, map.transform);
-                    break;
-                }
-            }
-        }
+
 
         yield return null;
     }
@@ -152,35 +149,34 @@ public class TileManager : MonoBehaviour
 
             if (j == 1 || j == 3 || j == 5 || j == 6)
             {
-                if (j == 1) { tileNum[(int)(playerPos.x), (int)(playerPos.y)] = 2; encountGauge += Random.Range(1, 4); }
-                if (j == 3) tileNum[(int)(playerPos.x), (int)(playerPos.y)] = 4;
+                if (j == 1) { tileNum[(int)(playerPos.x), (int)(playerPos.y)] = 2;}
+                if (j == 3)
+                {
+                    Destroy(map.transform.Find("EnemyOnMap(Clone)").gameObject);
+                    em.StartCoroutine("Fight", 5 + stairNum);
+                    tileNum[(int)(playerPos.x), (int)(playerPos.y)] = 4;
+                    fighting = true;
+                }
                 if (j == 5){ tileNum[(int)(playerPos.x), (int)(playerPos.y)] = 2;Chest();}
                 if (j == 6)
                 {
-                    Destroy(map.transform.Find("EnemyOnMap(Clone)").gameObject);
-                    em.StartCoroutine("Fight",1);
-                    tileNum[(int)(playerPos.x), (int)(playerPos.y)] = 2;
+                    j = 4;
+                    tileNum[(int)(playerPos.x), (int)(playerPos.y)] = 4;
+                    bossDefeated = true;
+                    downButton.SetActive(true);
                 }
 
-                j = tileNum[(int)(playerPos.x), (int)(playerPos.y)];
                 var miniTilePrefab = Instantiate(miniTile, transform.position, transform.rotation, miniMap.transform);
                 miniTilePrefab.transform.localPosition = playerPos * 0.02f;
                 for (int z = 0; z < randomMovePos.Length; z++) if (tileNum[(int)(playerPos.x + randomMovePos[z].x), (int)(playerPos.y + randomMovePos[z].y)] == 0) miniTilePrefab.GetComponent<MiniTile>().Create(z);
             }
-            if (j == 7)
-            {
-                Destroy(map.transform.Find("EnemyOnMap(Clone)").gameObject);
-                em.StartCoroutine("Fight",1);
-                tileNum[(int)(playerPos.x), (int)(playerPos.y)] = 2;
-            }
 
-            if (encountGauge >= encountLimit)
+            if ((j == 1 || j == 2) && Random.Range(0.0f, 1.0f) > 0.7f)
             {
-                encountGauge = 0;
-                em.StartCoroutine("Fight",0);
+                em.StartCoroutine("Fight", Random.Range(0, 5));
                 fighting = true;
             }
-            if (j == 3 || j == 4) downButton.SetActive(true);
+            if ((j == 3 || j == 4) && bossDefeated) downButton.SetActive(true);
             else downButton.SetActive(false);
         }
     }
@@ -199,6 +195,7 @@ public class TileManager : MonoBehaviour
         StartCoroutine("Generate");
         stairNum += 1;
         stairNumText.text = stairNum.ToString("") + "階";
+        bossDefeated = false;
         yield return null;
     }
 

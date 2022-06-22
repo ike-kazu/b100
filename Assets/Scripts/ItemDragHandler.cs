@@ -7,12 +7,6 @@ public class ItemDragHandler : MonoBehaviour, IBeginDragHandler, IDragHandler, I
 {
     
     private Vector3 itemPos;
-    RectTransform rectTransform;
-
-    // void Start()
-    // {
-    //     itemPos = GetComponent<RectTransform>().localPosition;
-    // }
 
     public void OnBeginDrag(PointerEventData eventData)
     {
